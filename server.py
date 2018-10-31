@@ -6,69 +6,82 @@ Clase (y programa principal) para un servidor de eco en UDP simple
 
 import sys
 import socketserver
+import json
+import time
 
 
 class SIPRegisterHandler(socketserver.DatagramRequestHandler):
-    """
-    Echo server class
-    """
+    """Echo server class."""
 
-    dicc = {}
-    
-    def get_expires(self, mensaje):
-        time = mensaje.split("EXPIRES: ")[1]
-        time = time.split("\r")[0]
-        return(int(time))
-    
+    Client_data = {}
+
+    def register2json(self):
+        """Json creator."""
+        with open('registered.json', "w") as outfile:
+            json.dump(self.Client_data, outfile, sort_keys=True, indent=4)
+
+    def json2registered(self):
+        """Json file checker."""
+        try:
+            with open("registered.json", "r") as data_file:
+                self.Client_data = json.load(data_file)
+        except(FileNotFoundError):
+            pass
+
+    def comprobar_cad_del(self):
+        """Output time and user's delete checker."""
+        time_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
+                                 time.gmtime(time.time()))
+        deleted = []
+        for cosas in self.Client_data:
+            if self.Client_data[cosas]['expires'] <= time_str:
+                deleted.append(cosas)
+        for users in deleted:
+            self.Client_data.pop(users)
+
     def handle(self):
-        """
-        handle method of the server class
-        (all requests will be handled by this method)
-        """
+        """handle method of the server class."""
+        atributos = {}  # Value de datos del cliente.
+        self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
 
-        IP = self.client_adress
-        print("IP: " + IP)
-        PORT = self.client_address
-        print("PORT: " + str(PORT))
-        self.wfile.write(b"Hemos recibido tu peticion")
-        line = self.rfile.read()
-        
-        mensaje_reci = line.decode('utf-8')
-        tipo_mensaje = mensaje_reci.split(' ')[0]
-        
-        if tipo_mensaje == "Register":
-            print("El cliente nos manda: + tipo_mensaje")
-            
-            nombre = self.get_nombre(mensaje_reci)
-            self.dicc[nombre] = IP
-            print(self.dicc)
-            self.wfile.write(b"SIP/2.0 200 ok\r\n\r\n")
-            
-        if time_expires == 0:
-            print("usuario eliminado")
-            del self.dicc[nombre]
-        else:
-            print("tiempo no expirado, no borro nada")
-        
-        self.wfile.write(b"SIP/2.0 200 ok\r\n\r\n")
-        
-        
-        while 1: 
-            line = self.rfile.read()
-            print("El cliente nos manda ", line.decode('utf-8'))
-            mensaje_reci = line.decocde('utf-8')
-            print("El cliente nos manda: " + mensaje_reci)
-            
-            if not line:
+        if not self.Client_data:
+            self.json2registered()
 
-                break
+        LINE = self.rfile.read()
+        DATA = LINE.decode('utf-8')
+        CORTES = DATA.split(' ')
+        time_expire_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
+                                        time.gmtime(time.time() +
+                                                    int(CORTES[3][:-4])))
+        if CORTES[0] == 'REGISTER':
+            atributos = self.client_address[0]
+            self.Client_data[CORTES[1].split(':')[-1]] = atributos
+            print("JULIA:", self.Client_data)
+            if CORTES[3][:-4] != '0':
+                tiempo = time_expire_str
+            else:
+                try:
+                    tiempo = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
+                                           time.gmtime(time.time()))
+                    self.Client_data[CORTES[1].split(':')
+                                     [-1]].append(atributos)
+                    self.comprobar_cad_del()
+                except KeyError:
+                    pass
+
+        print("Datos cliente(IP, puerto): " + str(self.client_address))
+        print("El cliente nos manda ", DATA[:-4])
+
+        self.register2json()
+
 
 if __name__ == "__main__":
+
+    Server_port = int(sys.argv[1])
+    serv = socketserver.UDPServer(('', Server_port), SIPRegisterHandler)
+
+    print("Lanzando servidor UDP de eco...")
     try:
-        # Listens at localhost ('') port 6001 
-        # and calls the EchoHandler class to manage the request
-        serv = socketserver.UDPServer(('', int(sys.argv[1])), SIPRegisterHandler) 
-        print("Lanzando servidor UDP de eco...")
         serv.serve_forever()
     except KeyboardInterrupt:
-            print("Finalizado servidor")
+        print("Finalizado servidor")
