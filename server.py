@@ -4,10 +4,11 @@
 Clase (y programa principal) para un servidor de eco en UDP simple
 """
 
+import sys
 import socketserver
 
 
-class EchoHandler(socketserver.DatagramRequestHandler):
+class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     """
     Echo server class
     """
@@ -17,21 +18,22 @@ class EchoHandler(socketserver.DatagramRequestHandler):
         handle method of the server class
         (all requests will be handled by this method)
         """
-        IP = self.client_adress
-        print(IP)
-        PORT = self.client_address
-        print(str(PORT))
         self.wfile.write(b"Hemos recibido tu peticion")
-        for line in self.rfile:
+        IP = self.client_adress
+        print("IP: " + IP)
+        PORT = self.client_address
+        print("PORT: " + str(PORT))
+        
+        whilen 1: 
+            line = self.rfile.read()
             print("El cliente nos manda ", line.decode('utf-8'))
 
 if __name__ == "__main__":
-    # Listens at localhost ('') port 6001 
-    # and calls the EchoHandler class to manage the request
-    serv = socketserver.UDPServer(('', 6001), EchoHandler) 
-
-    print("Lanzando servidor UDP de eco...")
     try:
+        # Listens at localhost ('') port 6001 
+        # and calls the EchoHandler class to manage the request
+        serv = socketserver.UDPServer(('', 6001), EchoHandler) 
+        print("Lanzando servidor UDP de eco...")
         serv.serve_forever()
     except KeyboardInterrupt:
-        print("Finalizado servidor")
+            print("Finalizado servidor")
