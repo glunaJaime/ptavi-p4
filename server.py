@@ -13,6 +13,13 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     Echo server class
     """
 
+    dicc = {}
+    
+    def get_expires(self, mensaje):
+        time = mensaje.split("EXPIRES: ")[1]
+        time = time.split("\r")[0]
+        return(int(time))
+    
     def handle(self):
         """
         handle method of the server class
