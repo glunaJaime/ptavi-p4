@@ -17,6 +17,10 @@ class EchoHandler(socketserver.DatagramRequestHandler):
         handle method of the server class
         (all requests will be handled by this method)
         """
+        IP = self.client_adress
+        print(IP)
+        PORT = self.client_address
+        print(str(PORT))
         self.wfile.write(b"Hemos recibido tu peticion")
         for line in self.rfile:
             print("El cliente nos manda ", line.decode('utf-8'))
